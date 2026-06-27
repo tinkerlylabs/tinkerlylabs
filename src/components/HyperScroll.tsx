@@ -323,7 +323,7 @@ export default function HyperScroll() {
         
         {/* INTEGRATED HEADER - Cards will fly past this */}
         <h2 
-          className="absolute top-6 md:top-10 left-0 w-full z-[0] text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-display font-black tracking-tight uppercase text-center leading-normal px-4 pb-2 text-transparent bg-clip-text animate-text-shine select-none pointer-events-none"
+          className="absolute top-6 md:top-10 left-0 w-full z-[0] text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-clash font-extrabold tracking-tight uppercase text-center leading-normal px-4 pb-2 text-transparent bg-clip-text animate-text-shine select-none pointer-events-none"
           style={{
             backgroundImage: "linear-gradient(120deg, #131911 35%, #96A88F 50%, #131911 65%)",
             backgroundSize: "200% auto",
@@ -612,13 +612,10 @@ export default function HyperScroll() {
             </div>
           </div>
 
-          {/* GLASS FILTER (Subtle full-screen fade to ensure text readability if needed) */}
-          <div className="absolute inset-0 bg-[#F4F6F2]/30 z-[2]" />
-
           {/* GLASS HERO CLIMAX TYPOGRAPHY DISPLAY */}
           <div 
             id="completion-text-container"
-            className="absolute inset-0 z-[10] flex flex-col items-center justify-center text-center px-4 md:px-12 bg-white/20 backdrop-blur-md backdrop-saturate-150"
+            className="absolute inset-0 z-[10] flex flex-col items-center justify-center text-center px-4 md:px-12 bg-white/10 backdrop-blur-sm backdrop-saturate-110"
           >
             <div id="completion-text-content" className="flex flex-col items-center justify-center transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]">
               <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#96A88F]/10 border border-[#96A88F]/20 text-[9px] font-mono font-bold tracking-[0.2em] text-[#556350] uppercase mb-8">
