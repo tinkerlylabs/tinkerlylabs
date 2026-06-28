@@ -607,7 +607,7 @@ export default function App() {
           {/* 6. Simple Copyright (Centered & Clean) */}
           <div className="mt-3">
             <span className="text-[9px] font-mono text-zinc-600 tracking-[0.3em] uppercase">
-              © 2026 Tinkerly Labs · Crafted by IITians
+              © 2026 Tinkerly Labs
             </span>
           </div>
 
