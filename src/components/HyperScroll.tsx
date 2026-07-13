@@ -215,6 +215,9 @@ export default function HyperScroll() {
     handleScroll(); // Initial call
     window.addEventListener("scroll", handleScroll, { passive: true });
 
+    // Set perspective once — changing it every frame causes composite updates
+    viewport.style.perspective = `${1000}px`;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting;
@@ -233,6 +236,10 @@ export default function HyperScroll() {
 
       if (!isVisible) return; // Pause completely if out of view
 
+      // Skip frame if nothing changed (mouse and scroll are both idle)
+      if (!needsRender) return;
+      needsRender = false;
+
       const dt = Math.min(time - lastTime, 32) / 1000;
       lastTime = time;
 
@@ -244,16 +251,18 @@ export default function HyperScroll() {
       state.mouseX += (state.targetMouseX - state.mouseX) * 0.12;
       state.mouseY += (state.targetMouseY - state.mouseY) * 0.12;
 
+      // Keep rendering until motion fully settles
+      const stillMoving =
+        Math.abs(state.targetScroll - state.scroll) > 0.01 ||
+        Math.abs(state.targetMouseX - state.mouseX) > 0.001 ||
+        Math.abs(state.targetMouseY - state.mouseY) > 0.001;
+      if (stillMoving) needsRender = true;
+
       // Camera Tilt & Shake based on mouse position
       const tiltX = state.mouseY * 4;
       const tiltY = state.mouseX * 4;
 
       world.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
-
-      // Dynamic warp perspective
-      const baseFov = 1000;
-      const fov = baseFov - Math.min(Math.abs(state.velocity) * 8, 550);
-      viewport.style.perspective = `${fov}px`;
 
       // Render camera coordinate deep inside space
       const cameraZ = state.scroll * CONFIG.camSpeed;
@@ -275,7 +284,13 @@ export default function HyperScroll() {
 
       // Sync the Completion glassmorphic overlay
       if (overlay) {
-        overlay.style.opacity = completionRatio.toString();
+        // Only write opacity while still animating — stop once fully opaque
+        if (completionRatio < 1) {
+          overlay.style.opacity = completionRatio.toString();
+        } else if (!overlayIsMounted) {
+          overlay.style.opacity = '1';
+          overlayIsMounted = true;
+        }
 
         const shouldAcceptPointer = completionRatio > 0.05;
         if (overlayAcceptsPointer !== shouldAcceptPointer) {
@@ -288,6 +303,7 @@ export default function HyperScroll() {
         textContent.style.transform = `translateY(${translateY}px)`;
       }
 
+      // Once overlay is fully visible, stop updating 3D items entirely
       if (completionRatio >= OVERLAY_RENDER_CUTOFF) {
         return;
       }
@@ -329,12 +345,6 @@ export default function HyperScroll() {
             trans += ` scale3d(1, 1, ${stretch})`;
           } else if (item.type === "text") {
             trans += ` rotateZ(${item.rot}deg)`;
-            if (Math.abs(state.velocity) > 0.8) {
-              const offset = state.velocity * 1.5;
-              item.el.style.textShadow = `${offset}px 0 rgba(19,25,17,0.25), ${-offset}px 0 rgba(150,168,143,0.5)`;
-            } else {
-              item.el.style.textShadow = "none";
-            }
           } else {
             const t = time * 0.001;
             const float = Math.sin(t + item.x) * 6;
@@ -422,6 +432,7 @@ export default function HyperScroll() {
             top: 50%;
             left: 50%;
             transform-style: preserve-3d;
+            will-change: transform;
           }
 
           #hyper-scroll-section .item {
@@ -433,6 +444,7 @@ export default function HyperScroll() {
             display: flex;
             align-items: center;
             justify-content: center;
+            will-change: transform, opacity;
           }
 
           /* --- CARDS & EDITORIAL CONTENT --- */
@@ -576,14 +588,14 @@ export default function HyperScroll() {
         <div className="vignette" />
         <div className="noise" />
 
-        {/* COMPLETION OVERLAY (Renders all cards/headlines at once, frosted, with centered climax text) */}
+        {/* COMPLETION OVERLAY — opacity is driven by JS, no CSS transition to avoid conflicts */}
         <div 
           id="completion-overlay"
-          className="absolute inset-0 z-[20] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-1000 bg-[#F4F6F2]"
-          style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+          className="absolute inset-0 z-[20] flex items-center justify-center opacity-0 pointer-events-none bg-[#F4F6F2] transform-gpu"
+          style={{ willChange: 'opacity' }}
         >
-          {/* BACKGROUND NEWSPAPER COLLAGE & FLOATING HEADLINES */}
-          <div className="absolute inset-0 overflow-hidden opacity-100 select-none pointer-events-none z-[1]">
+          {/* BACKGROUND NEWSPAPER COLLAGE — pre-promoted to GPU layer to prevent paint spike on reveal */}
+          <div className="absolute inset-0 overflow-hidden opacity-100 select-none pointer-events-none z-[1] transform-gpu" style={{ willChange: 'contents' }}>
             {Array.from({ length: COLLAGE_ITEM_COUNT }).map((_, idx) => {
               const art = ARTICLES[idx % ARTICLES.length];
               // Deterministic pseudo-random values to prevent re-render jitter
